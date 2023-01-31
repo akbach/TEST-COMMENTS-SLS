@@ -1,0 +1,11 @@
+Resources:
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      # Enable gzip compression
+      MinimumCompressionSize: 1000
+Outputs:
+  ApiGatewayRestApi:
+    Description: API Gateway Endpoint
+    Value:
+      Ref: ApiGatewayRestApi

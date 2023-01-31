@@ -1,0 +1,64 @@
+service: comments-app
+plugins:
+  - serverless-s3-sync
+functions:
+  api:
+    handler: comments-api/build/lambda.handler
+    events:
+      - http:
+          method: any
+          path: /{any+}
+          cors: true
+      - https:
+          method: any
+          path: /{any+}
+          cors: true
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: eu-west-1
+  profile: default
+  apiGateway:
+    shouldStartNameWithService: true
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    NODE_OPTIONS: --enable-source-maps --stack-trace-limit=1000
+    COMMENT_TABLE_NAME: ${self:custom.commentTable.name}
+    USER_TABLE_NAME: ${self:custom.userTable.name}
+  iamRoleStatements: ${file(serverless/iam/tables-iam.yml)}
+
+package:
+  individually: true
+  patterns:
+    - '!**/**'
+    - comments-api/build/lambda.js
+
+
+custom:
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+    stages:
+      - ${self:provider.stage}
+
+  bucketName: serverless-demo-app-comments
+  s3Sync:
+    - bucketName: ${self:custom.bucketName}
+      localDir: comments-front/dist/
+
+  commentTable:
+    name: ${self:provider.stage}-comment
+    arn: !GetAtt CommentTable.Arn
+
+  userTable:
+    name: ${self:provider.stage}-user
+    arn: !GetAtt UserTable.Arn
+
+resources:
+  - ${file(serverless/resources/app-tables.yml)}
+  - ${file(serverless/resources/api-gateway.yml)}
+  - ${file(serverless/resources/front-bucket.yml)}
